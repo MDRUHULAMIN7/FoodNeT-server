@@ -45,6 +45,20 @@ app.patch('/foods/:id',async(req,res)=>{
     res.send(result)
 })
 
+
+// delete food
+app.delete('/foods-id/:id',async(req,res)=>{
+  const id = req.params.id;
+  const query = {_id:new ObjectId(id)}
+  const result = await foodsCollection.deleteOne(query)
+  res.send(result)
+})
+
+
+
+
+
+// 
 app.get('/foods/:search',async(req,res)=>{
   const search = req.params.search;
   let query={
