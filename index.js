@@ -54,6 +54,15 @@ app.get('/foods/:search',async(req,res)=>{
   res.send(result)
 })
 
+app.get('/foods-email/:email',async(req,res)=>{
+  const email = req.params.email;
+  const query={ donatoremail:email}
+  
+
+  const result= await foodsCollection.find(query).toArray();
+  res.send(result)
+})
+
 
     app.get('/foods',async(req,res)=>{
         const cursor = foodsCollection.find()
