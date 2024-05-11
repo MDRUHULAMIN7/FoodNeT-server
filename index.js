@@ -45,6 +45,15 @@ app.patch('/foods/:id',async(req,res)=>{
     res.send(result)
 })
 
+app.get('/foods/:search',async(req,res)=>{
+  const search = req.params.search;
+  let query={
+    name:{$regex:search},
+  }
+  const result = await foodsCollection.find(query).toArray();
+  res.send(result)
+})
+
 
     app.get('/foods',async(req,res)=>{
         const cursor = foodsCollection.find()
