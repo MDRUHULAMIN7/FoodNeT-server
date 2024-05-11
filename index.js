@@ -44,6 +44,33 @@ app.patch('/foods/:id',async(req,res)=>{
     const result = await foodsCollection.updateOne(query,updateDoc,options)
     res.send(result)
 })
+// updatefood
+
+app.put('/foods-update/:id',async(req,res)=>{
+  const id = req.params.id;
+  const filter={_id:new ObjectId(id)}
+  const options={upsert:true}
+  const updatedFood = req.body;
+
+  const food={
+    $set:{
+      donatorname:updatedFood.donatorname,
+      donatoremail:updatedFood.donatoremail,
+      donatorphoto:updatedFood.donatorphoto,
+      name:updatedFood.name,
+      image:updatedFood.image,
+      quantity:updatedFood.quantity,
+      location:updatedFood.location,
+      date:updatedFood.date,
+      foodstatus:updatedFood.foodstatus,
+      additonalnotes:updatedFood.additonalnotes
+
+
+    }
+  }
+  const result = await foodsCollection.updateOne(filter,food,options)
+  res.send(result)
+})
 
 
 // delete food
