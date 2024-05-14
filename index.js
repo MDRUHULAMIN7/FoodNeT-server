@@ -32,6 +32,29 @@ const client = new MongoClient(uri, {
   }
 });
 
+// midlewaeres
+
+const logger = (req,res,next)=>{
+  console.log ( 'logger',req.method,req.url);
+  next();
+}
+
+const verrifyToken=(req,res,next)=>{
+  const token=req?.cookies?.token;
+  if(!token){
+    return res.status(401).send({message:'unauthorized access'})
+  }
+  jwt.verify(token,process.env.ACCESS_TOKEN_SECRET,(err, decoded)=>{
+if(err){
+  return res.status(401).send({message:'unauthorized access'})
+}
+
+req.user = decoded;
+next()
+  })
+  console.log('token in middlewre',token);
+  
+}
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -84,6 +107,7 @@ app.put('/foods-update/:id',async(req,res)=>{
 // delete food
 app.delete('/foods-id/:id',async(req,res)=>{
   const id = req.params.id;
+
   const query = {_id:new ObjectId(id)}
   const result = await foodsCollection.deleteOne(query)
   res.send(result)
@@ -103,8 +127,12 @@ app.get('/foods/:search',async(req,res)=>{
   res.send(result)
 })
 
-app.get('/foods-email/:email',async(req,res)=>{
+app.get('/foods-email/:email',logger,verrifyToken,async(req,res)=>{
   const email = req.params.email;
+  console.log('token owner info',req.user);
+  // if(req.user.email !== req.query.email ){
+  //   return res.status(403).send({message:'forbiden access'})
+  // }
   const query={ donatoremail:email}
   
 
@@ -115,7 +143,7 @@ app.get('/foods-email/:email',async(req,res)=>{
 
     app.get('/foods',async(req,res)=>{
         const cursor = foodsCollection.find()
-console.log('cook',req.cookies);
+
         const result = await cursor.toArray();
         res.send(result)
     })
