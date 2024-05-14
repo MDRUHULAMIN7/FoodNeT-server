@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 
@@ -16,7 +17,7 @@ app.use(cors(
   }
 ));
 app.use(express.json());
-
+app.use(cookieParser())
 // console.log(process.env.DB_PASS,process.env.DB_USER);
 
 
@@ -114,7 +115,7 @@ app.get('/foods-email/:email',async(req,res)=>{
 
     app.get('/foods',async(req,res)=>{
         const cursor = foodsCollection.find()
-
+console.log('cook',req.cookies);
         const result = await cursor.toArray();
         res.send(result)
     })
@@ -124,12 +125,31 @@ app.get('/foods-email/:email',async(req,res)=>{
     app.post('/jwt',async(req,res)=>{
       const user = req.body;
       console.log('used for token',user);
-      const token 
-      =jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn:'333d'})
 
-      res.send({token})
+      const token 
+      =jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn:'1d'})
+console.log('token',token);
+      res.cookie('token', token, {
+        httpOnly: true,
+        // secure: process.env.NODE_ENV === 'production', 
+        // sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+secure:true,
+sameSite:'none',
+maxAge:60*60*1000
     })
- 
+      .send({success:true,token})
+    })
+
+    // app.post('/logout',async(req,res)=>{
+    //   const user = req.body;
+    //   console.log('logout');
+    //   res.clearCookie('token',{maxAge:0}).send({success:true})
+    // })
+    app.get('/logout', async (req, res) => {
+
+      res.clearCookie('token', { maxAge: 0, sameSite: 'none', secure: true })
+      .send({ success: true })
+    })
 
     app.post('/foods',async(req,res)=>{
         const newFoods = req.body;
