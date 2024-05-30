@@ -11,7 +11,9 @@ const port = process.env.PORT || 5000;
 app.use(cors(
   {
     origin:[
-      'http://localhost:5173'
+      'http://localhost:5173',
+      "https://foodnet-fb12c.web.app",
+      "https://foodnet-fb12c.firebaseapp.com",
     ],
     credentials:true
   }
@@ -34,13 +36,14 @@ const client = new MongoClient(uri, {
 
 // midlewaeres
 
-const logger = (req,res,next)=>{
-  console.log ( 'logger',req.method,req.url);
-  next();
-}
+// const logger = (req,res,next)=>{
+//   console.log ( 'logger',req.method,req.url);
+//   next();
+// }
 
 const verrifyToken=(req,res,next)=>{
   const token=req?.cookies?.token;
+  console.log(token);
   if(!token){
     return res.status(401).send({message:'unauthorized access'})
   }
@@ -55,6 +58,16 @@ next()
   console.log('token in middlewre',token);
   
 }
+const cookieoption ={
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production'? true : false ,
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+// secure:true,
+// sameSite:'none',
+maxAge:60*60*1000
+}
+
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -62,6 +75,7 @@ async function run() {
     // Send a ping to confirm a successful connection
 
     const foodsCollection = client.db('FoodNeT').collection('foods');
+    const bookmarksCollection = client.db('FoodNeT').collection('bookmarks');
 
 
 app.patch('/foods/:id',async(req,res)=>{
@@ -121,18 +135,18 @@ app.delete('/foods-id/:id',async(req,res)=>{
 app.get('/foods/:search',async(req,res)=>{
   const search = req.params.search;
   let query={
-    name:{$regex:search},
+    name:{$regex:search,$options:'i'},
   }
   const result = await foodsCollection.find(query).toArray();
   res.send(result)
 })
 
-app.get('/foods-email/:email',logger,verrifyToken,async(req,res)=>{
+app.get('/foods-email/:email',verrifyToken,async(req,res)=>{
   const email = req.params.email;
   console.log('token owner info',req.user);
-  // if(req.user.email !== req.query.email ){
-  //   return res.status(403).send({message:'forbiden access'})
-  // }
+  if(req.user.email !== req.params.email ){
+    return res.status(403).send({message:'forbiden access'})
+  }
   const query={ donatoremail:email}
   
 
@@ -142,7 +156,7 @@ app.get('/foods-email/:email',logger,verrifyToken,async(req,res)=>{
 
 
     app.get('/foods',async(req,res)=>{
-        const cursor = foodsCollection.find()
+        const cursor = foodsCollection.find().sort({date : -1})
 
         const result = await cursor.toArray();
         res.send(result)
@@ -159,31 +173,48 @@ app.get('/foods-email/:email',logger,verrifyToken,async(req,res)=>{
 console.log('token',token);
       res.cookie('token', token, {
         httpOnly: true,
-        // secure: process.env.NODE_ENV === 'production', 
-        // sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-secure:true,
-sameSite:'none',
+        secure: process.env.NODE_ENV === 'production'? true : false ,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+// secure:true,
+// sameSite:'none',
 maxAge:60*60*1000
     })
       .send({success:true,token})
     })
 
-    // app.post('/logout',async(req,res)=>{
-    //   const user = req.body;
-    //   console.log('logout');
-    //   res.clearCookie('token',{maxAge:0}).send({success:true})
-    // })
-    app.get('/logout', async (req, res) => {
-
-      res.clearCookie('token', { maxAge: 0, sameSite: 'none', secure: true })
-      .send({ success: true })
-    })
+    app.post('/logout', async (req, res) => {
+      const user = req.body;
+      console.log('logging out', user);
+      res
+          .clearCookie('token', { maxAge: 0, sameSite: 'none', secure: true })
+          .send({ success: true })
+   })
+    
 
     app.post('/foods',async(req,res)=>{
         const newFoods = req.body;
         const result = await foodsCollection.insertOne(newFoods)
         res.send(result)
     })
+     // post bookmark
+
+     app.post('/bookmarks',async(req,res)=>{
+      const bookmark = req.body;
+      const result = await bookmarksCollection.insertOne(bookmark)
+      res.send(result)
+     })
+    //  get bookmarks foods
+
+    app.get('/bookmarks/:email',async(req,res)=>{
+      const email = req.params.email;
+      console.log(email);
+      const query ={email:email};
+      console.log(query);
+      const result = await bookmarksCollection.find(query).toArray()
+      res.send(result)
+    })
+
+
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
